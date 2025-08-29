@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск заказа</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; }
+        input { width: 300px; padding: 8px; }
+        button { padding: 8px 12px; }
+        pre { background-color: #f4f4f4; padding: 15px; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+    <h1>Найти информацию о заказе</h1>
+    <input type="text" id="orderUidInput" placeholder="Введите Order UID" value="b563feb7b2b84b6test">
+    <button id="findBtn">Найти</button>
+
+    <hr>
+
+    <h2>Результат:</h2>
+    <pre id="resultArea">Здесь будет информация о заказе...</pre>
+
+    <script>
+        // --- ШАГ 1: Находим наши HTML-элементы --- 
+        const orderUidInput = document.getElementById('orderUidInput');
+        const findBtn = document.getElementById('findBtn');
+        const resultArea = document.getElementById('resultArea');
+
+        // --- ШАГ 2: Вешаем "слушателя" на клик по кнопке --- 
+        findBtn.addEventListener('click', () => {
+            // Этот код выполнится каждый раз, когда кнопка будет нажата
+            const orderUid = orderUidInput.value;
+
+            // Проверяем, что поле не пустое
+            if (!orderUid) {
+                resultArea.textContent = 'Пожалуйста, введите Order UID.';
+                return;
+            }
+
+            // Очищаем предыдущий результат и показываем, что идет загрузка
+            resultArea.textContent = 'Загрузка...';
+            resultArea.classList.remove('error');
+
+            // --- ШАГ 3: Отправляем запрос на наш Go-бэкенд --- 
+            fetch(`http://localhost:8080/order/${orderUid}`)
+                .then(response => {
+                    // --- ШАГ 4: Анализируем ответ от сервера ---
+                    if (response.ok) {
+                        // Если статус ответа хороший (например, 200 OK), 
+                        // то мы преобразуем тело ответа в JSON
+                        return response.json();
+                    } else {
+                        // Если статус плохой (например, 404 Not Found),
+                        // мы создаем ошибку, чтобы перейти в блок .catch()
+                        throw new Error(`Заказ не найден (статус: ${response.status})`);
+                    }
+                })
+                .then(data => {
+                    // --- ШАГ 5: Отображаем успешный результат ---
+                    // Сюда мы попадаем, если response.ok и response.json() отработали успешно
+                    // JSON.stringify(data, null, 2) превращает объект в красиво отформатированную строку
+                    resultArea.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    // --- ШАГ 6: Отображаем ошибку ---
+                    // Сюда мы попадаем, если fetch не удался (нет сети) или если мы выбросили ошибку на шаге 4
+                    console.error('Ошибка при получении заказа:', error);
+                    resultArea.textContent = error.message;
+                    resultArea.classList.add('error');
+                });
+        });
+    </script>
+
+</body>
+</html>
